@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqreenAspNetCore", "SqreenAspNetCore\SqreenAspNetCore.csproj", "{66A1F947-0238-4B95-80CE-3FA32AC6439A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqreenHeader", "SqreenHeader\SqreenHeader.csproj", "{C7C7BB4F-BAE9-489A-8458-D7A36DAC8AC2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{66A1F947-0238-4B95-80CE-3FA32AC6439A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66A1F947-0238-4B95-80CE-3FA32AC6439A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66A1F947-0238-4B95-80CE-3FA32AC6439A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66A1F947-0238-4B95-80CE-3FA32AC6439A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7C7BB4F-BAE9-489A-8458-D7A36DAC8AC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7C7BB4F-BAE9-489A-8458-D7A36DAC8AC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7C7BB4F-BAE9-489A-8458-D7A36DAC8AC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7C7BB4F-BAE9-489A-8458-D7A36DAC8AC2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2DB0F484-E4EA-4197-9AD1-A0F6DAA2309A}
+	EndGlobalSection
+EndGlobal
