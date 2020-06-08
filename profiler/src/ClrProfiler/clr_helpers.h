@@ -13,13 +13,11 @@ namespace trace {
     const size_t NameMaxSize = 1024;
     const ULONG EnumeratorMax = 256;
 
-    // TODO change this to match my assembly
     const auto ProfilerAssemblyName = "SqreenHeader"_W;
     const auto TraceAgentTypeName = "SqreenHeader.HeaderMiddleware"_W;
-    const auto GetInstanceMethodName = "GetInstance"_W;
-    const auto BeforeMethodName = "SetupHeaderMiddleware"_W;
-    const auto EndMethodName = "EndMethod"_W;
-    const auto MethodTraceTypeName = "ClrProfiler.Trace.MethodTrace"_W;
+    const auto GetInstanceMethodName = "SetupHeaderMiddleware"_W;
+    const auto GetInstanceMethodNameParameterTypeName = "Microsoft.AspNetCore.Builder.IApplicationBuilder"_W;
+    const auto GetInstanceMethodNameParameterTypeAssemblyName = "Microsoft.AspNetCore.Http.Abstractions"_W;
 
     const auto AssemblyTypeName = "System.Reflection.Assembly"_W;
     const auto AssemblyLoadMethodName = "LoadFrom"_W;

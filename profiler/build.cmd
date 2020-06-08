@@ -52,7 +52,7 @@ cmake -G "Visual Studio 16 2019" ..\src\ClrProfiler -DCMAKE_BUILD_TYPE=Debug
 echo Calling VS Developer Command Prompt to build
 call %VS_CMD_PATH%
 
-msbuild -v:m CorProfiler.sln
+msbuild -v:m ClrProfiler.sln
 
 popd
 
@@ -62,5 +62,5 @@ echo.
 echo Done building
 
 echo Copying binary to main directory
-copy /y  bin\Debug\CorProfiler.dll .
+copy /y  bin\Debug\ClrProfiler.dll .
 

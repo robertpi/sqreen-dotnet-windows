@@ -37,8 +37,6 @@ namespace SqreenAspNetCore
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
-
             app.UseRouting();
 
             app.UseAuthorization();
@@ -47,8 +45,6 @@ namespace SqreenAspNetCore
             {
                 endpoints.MapControllers();
             });
-
-            app.SetupHeaderMiddleware();
         }
     }
 }

@@ -74,11 +74,11 @@ namespace trace
         }
         catch (const json::parse_error& e) {
             //Warn("Invalid TraceAssemblies: {}", e.what());
-            printf("toto");
+            printf("toto\n");
         }
         catch (const json::type_error& e) {
             //Warn("Invalid TraceAssemblies: {}", e.what());
-            printf("titi");
+            printf("titi\n");
         }
         catch (...) {
             const auto ex = std::current_exception();
@@ -89,7 +89,7 @@ namespace trace
             }
             catch (const std::exception& ex0) {
                 //Warn("Failed to load TraceAssemblies: {}", ex0.what());
-                printf("tata");
+                printf("tata\n");
             }
         }
         traceConfig.traceAssemblies = traceAssemblies;
