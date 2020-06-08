@@ -1,6 +1,9 @@
 @echo off
 setlocal
 
+REM more meaningful name
+SET BatchDir=%~dp0
+
 if not defined BuildOS (
     set BuildOS=Windows
 )
@@ -14,11 +17,11 @@ if not defined BuildType (
 )
 
 if not defined CORECLR_PATH (
-    set CORECLR_PATH=C:/code/runtime/src/coreclr
+    set CORECLR_PATH=%BatchDir%/../runtime/src/coreclr
 )
 
 if not defined CORECLR_BIN (
-    set CORECLR_BIN=C:/code/runtime/artifacts/bin/coreclr/%BuildOS%.%BuildArch%.%BuildType%
+    set CORECLR_BIN=%BatchDir%/../runtime/artifacts/bin/coreclr/%BuildOS%.%BuildArch%.%BuildType%
 )
 
 set VS_COM_CMD_PATH="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat"
@@ -60,7 +63,4 @@ echo.
 echo.
 echo.
 echo Done building
-
-echo Copying binary to main directory
-copy /y  bin\Debug\ClrProfiler.dll .
 

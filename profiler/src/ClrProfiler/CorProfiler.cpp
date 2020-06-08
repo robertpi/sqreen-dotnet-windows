@@ -345,7 +345,8 @@ namespace trace {
     {
         auto isTrace = false;
         if ("SqreenAspNetCore.Startup"_W == functionInfo.type.name ||
-            "TestWebApp.Startup"_W == functionInfo.type.name)
+            "TestWebApp.Startup"_W == functionInfo.type.name || 
+            "SqreenAspNetCoreDemo.Startup"_W == functionInfo.type.name)
         {
             std::wcout << "functionInfo.type.name: " << functionInfo.type.name << "\n";
             std::wcout << "functionInfo.name: " << functionInfo.name << "\n";

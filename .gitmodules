@@ -1,0 +1,3 @@
+[submodule "runtime"]
+	path = runtime
+	url = git@github.com:dotnet/runtime.git
