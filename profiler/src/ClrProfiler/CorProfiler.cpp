@@ -140,6 +140,7 @@ namespace trace {
             moduleMetaInfoMap[moduleId] = module_metadata;
         }
 
+        // only log the load of the module with an entry point, otherwise we'll spam the logs
         if (entryPointToken != mdTokenNil)
         {
             std::wcout << "Assembly: " << module_info.assembly.name << ", EntryPointToken: " << entryPointToken << "\n";

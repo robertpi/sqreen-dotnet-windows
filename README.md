@@ -10,6 +10,20 @@ Currently there only build scripts for Windows. The C# parts will already work u
 
 First ensure you have all the [dependencies for Windows](https://github.com/dotnet/runtime/blob/master/docs/workflow/requirements/windows-requirements.md). To ensure all the correct packages from Visual Studio are installed make sure you import [runtime/.vsconfig](runtime/.vsconfig) into the visual studio installer, for more details [how to do this](https://docs.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019).
 
+Once all the dependencies are installed first, from a normal Windows command prompt, execute:
+
+```
+runfirst-buildcoreclr.cmd
+```
+
+This will build the coreclr runtime. This will take some time, but you will only need to do this once. Secondly, execute:
+
+```
+build.cmd
+```
+
+To build and run the sample.
+
 Testing
 =======
 
@@ -39,9 +53,27 @@ The code from this exercise is a modified version of [ClrProfiler.Trace](https:/
 
 This project relies on an outdated way for preforming cross platform complication, so I replaced it with the build system from [doooot stacksampling](https://github.com/ghanysingh/doooot/tree/0b3bde45ecf74fff54b20c8e652cf9f961742de3/core/profiling/stacksampling) which uses cmake like coreclr.
 
+The important parts of the code are:
+
+### [clr_helpers.h](profiler\src\ClrProfiler\clr_helpers.h)
+
+This file contains the constants that specific what method, from which type and assembly should be injected.
+
+It also serves as the header file for [clr_helpers.cpp](profiler\src\ClrProfiler\clr_helpers.cpp), which contains some helpers to make working with CLR data structures easier.
+
+### [CorProfiler.cpp](profiler\src\ClrProfiler\CorProfiler.cpp)
+
+This file contains the code that handles the call backs from the CLR. We are only interested in three callbacks:
+
+- ```ModuleLoadFinished``` - used to store more info about the module / assembly being loaded
+- ```ModuleUnloadFinished``` - remove data about a module that has been unloaded
+- ```JITCompilationStarted``` - This tests if a method should be rewritten / have code injected and preforms the injection
+
+There are two helper methods ```FunctionNeedsMiddlewareInject``` & ```MethodParamsNameIsMatch``` which use a heuristic to know if we should inject our code.
+
 ## Step Three
 
-The code for step three is trivial. Adding a header to an aspnet core app is straight forward:
+The code for step three is trivial. Adding a header to an aspnet core app is straight forward, this forms the body of the method that will be injected:
 
 ```
         app.Use(async (context, next) =>
@@ -57,5 +89,7 @@ TODO
 ====
 
 - bash / *nix build scripts
+- improve profiler code:
+    - separate injection code from callback code
+    - improve heuristic for detecting function that requires injection
 - unit tests for the profiler code
-- improve profiler code
