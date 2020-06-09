@@ -167,6 +167,6 @@ namespace trace {
             return count;
         }
 
-        bool FunctionIsNeedTrace(CComPtr<IMetaDataImport2>& pImport, ModuleMetaInfo* moduleMetaInfo, FunctionInfo functionInfo);
+        bool FunctionNeedsMiddlewareInject(CComPtr<IMetaDataImport2>& pImport, ModuleMetaInfo* moduleMetaInfo, FunctionInfo functionInfo);
     };
 }

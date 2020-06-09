@@ -120,6 +120,8 @@ namespace trace {
 
     HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID moduleId, HRESULT hrStatus) 
     {
+        // used to store info about the modules that will be useful later for rewriting
+
         auto module_info = GetModuleInfo(this->corProfilerInfo, moduleId);
         if (!module_info.IsValid() || module_info.IsWindowsRuntime()) {
             return S_OK;
@@ -191,6 +193,8 @@ namespace trace {
 
     HRESULT STDMETHODCALLTYPE CorProfiler::ModuleUnloadFinished(ModuleID moduleId, HRESULT hrStatus)
     {
+        // remove info about the module on unload
+
         //printf("CorProfiler::ModuleUnloadFinished, ModuleID:{} ", moduleId);
         {
             std::lock_guard<std::mutex> guard(mapLock);
@@ -249,33 +253,34 @@ namespace trace {
                 && "Microsoft.AspNetCore.Hosting.IWebHostEnvironment"_W == typeTokName2 )
             {
                 paramIsMatch = true;
-                std::wcout << "params matched\n";
             }
-            else
-            {
-                std::wcout << "params didn't matched\n";
-            }
-            
         }
 
         return paramIsMatch;
     }
 
-    bool CorProfiler::FunctionIsNeedTrace(CComPtr<IMetaDataImport2>& pImport, ModuleMetaInfo* moduleMetaInfo, FunctionInfo functionInfo)
+    bool CorProfiler::FunctionNeedsMiddlewareInject(CComPtr<IMetaDataImport2>& pImport, ModuleMetaInfo* moduleMetaInfo, FunctionInfo functionInfo)
     {
         auto isTrace = false;
-        if ("SqreenAspNetCore.Startup"_W == functionInfo.type.name ||
-            "TestWebApp.Startup"_W == functionInfo.type.name || 
-            "SqreenAspNetCoreDemo.Startup"_W == functionInfo.type.name)
+
+        const auto typeNameParts = Split(functionInfo.type.name, static_cast<wchar_t>('.'));
+        if(typeNameParts.size() == 0)
+        {
+            return isTrace;
+        }
+        const auto shortTypeName = typeNameParts[typeNameParts.size() - 1];
+
+        if ("Startup"_W == shortTypeName)
         {
             std::wcout << "functionInfo.type.name: " << functionInfo.type.name << "\n";
             std::wcout << "functionInfo.name: " << functionInfo.name << "\n";
+
             if ("Configure"_W == functionInfo.name) 
             {
                 if (MethodParamsNameIsMatch(functionInfo, pImport))
                 {
                     isTrace = true;
-                    std::wcout << "found a trace!\n";
+                    std::wcout << "found a Setup method to inject!\n";
                 }
             }
         }
@@ -284,6 +289,8 @@ namespace trace {
 
     HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(FunctionID functionId, BOOL fIsSafeToBlock)
     {
+
+        // get the method's module and function token
         mdToken function_token = mdTokenNil;
         ModuleID moduleId;
         auto hr = corProfilerInfo->GetFunctionInfo(functionId, NULL, &moduleId, &function_token);
@@ -300,6 +307,7 @@ namespace trace {
             return S_OK;
         }
 
+        // check if method has already been written
         bool isiLRewrote = false;
         {
             std::lock_guard<std::mutex> guard(mapLock);
@@ -311,6 +319,7 @@ namespace trace {
             return S_OK;
         }
 
+        // extract some COM interfaces needed for querying the meta and rewriting the IL
         CComPtr<IUnknown> metadata_interfaces;
         hr = corProfilerInfo->GetModuleMetaData(moduleId, ofRead | ofWrite,
             IID_IMetaDataImport2,
@@ -323,6 +332,7 @@ namespace trace {
             return S_OK;
         }
 
+        // find the meta data about the method being JIT compiled
         mdModule module;
         hr = pImport->GetModuleFromScope(&module);
         RETURN_OK_IF_FAILED(hr);
@@ -334,6 +344,7 @@ namespace trace {
 
         //.net framework need add gac 
         //.net core add premain il
+        // we shouldn't rewrite the entry point, but leaving this just in case
         if (corAssemblyProperty.szName != "mscorlib"_W &&
             !entryPointReWrote &&
             functionInfo.id == moduleMetaInfo->entryPointToken)
@@ -395,6 +406,7 @@ namespace trace {
             return S_OK;
         }
 
+        // some generic test on the signature and calling convertion
         hr = functionInfo.signature.TryParse();
         RETURN_OK_IF_FAILED(hr);
 
@@ -402,7 +414,8 @@ namespace trace {
             return S_OK;
         }
 
-        if(!FunctionIsNeedTrace(pImport, moduleMetaInfo, functionInfo))
+        // check the function spec meets our heuristic for a setup method
+        if(!FunctionNeedsMiddlewareInject(pImport, moduleMetaInfo, functionInfo))
         {
             return S_OK;
         }
@@ -414,25 +427,29 @@ namespace trace {
             return S_OK;
         }
 
+        // get a reference to the middleware / profiler assembly
         mdAssemblyRef assemblyRef = GetProfilerAssemblyRef(metadata_interfaces);
 
         if (assemblyRef == mdAssemblyRefNil) {
             return S_OK;
         }
 
-        mdTypeRef traceAgentTypeRef;
+        // get a reference to the middleware type
+        mdTypeRef middlewareTypeRef;
         hr = pEmit->DefineTypeRefByName(
             assemblyRef,
             MiddlewareTypeName.data(),
-            &traceAgentTypeRef);
+            &middlewareTypeRef);
         RETURN_OK_IF_FAILED(hr);
 
+        // get a refernce to another COM interface to find an assemble that contains a type from our target functions signature
         auto importMetaDataAssembly = metadata_interfaces.As<IMetaDataAssemblyImport>(IID_IMetaDataAssemblyImport);
         if (importMetaDataAssembly.IsNull())
         {
             return S_OK;
         }
-        
+
+        // get a refernce to the type used in the middleware setup signature
         mdAssemblyRef middlewareSetupMethodNameParameterTypeAssembly 
             = FindAssemblyRef(importMetaDataAssembly, MiddlewareSetupMethodNameParameterTypeAssemblyName);
         mdTypeRef middlewareSetupMethodNameParameterTypeRef;
@@ -442,41 +459,50 @@ namespace trace {
             &middlewareSetupMethodNameParameterTypeRef);
         RETURN_OK_IF_FAILED(hr);
 
+        // build a structure representing the signature of the middleware function to be called
         unsigned middlewareSetupMethodNameParameter_buffer;
         auto middlewareSetupMethodNameParameter_size 
             = CorSigCompressToken(middlewareSetupMethodNameParameterTypeRef, &middlewareSetupMethodNameParameter_buffer);
         auto* middlewareSetupSig = new COR_SIGNATURE[middlewareSetupMethodNameParameter_size + 4];
         unsigned offset = 0;
         middlewareSetupSig[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
-        middlewareSetupSig[offset++] = 0x01;
-        middlewareSetupSig[offset++] = ELEMENT_TYPE_VOID;
-        middlewareSetupSig[offset++] = ELEMENT_TYPE_CLASS;
+        middlewareSetupSig[offset++] = 0x01; // number parameters
+        middlewareSetupSig[offset++] = ELEMENT_TYPE_VOID; // return type
+        middlewareSetupSig[offset++] = ELEMENT_TYPE_CLASS; // parameter type (next line specifices the type name)
         memcpy(&middlewareSetupSig[offset], &middlewareSetupMethodNameParameter_buffer, middlewareSetupMethodNameParameter_size);
         offset += middlewareSetupMethodNameParameter_size;
 
+        // reference to the signature of the middleware
         mdMemberRef middlewareSetupMemberRef;
         hr = pEmit->DefineMemberRef(
-            traceAgentTypeRef,
+            middlewareTypeRef,
             MiddlewareSetupMethodName.data(),
             middlewareSetupSig,
             sizeof(middlewareSetupSig),
             &middlewareSetupMemberRef);
         RETURN_OK_IF_FAILED(hr);
 
-
+        // start the IL rewriting
         ILRewriter rewriter(corProfilerInfo, NULL, moduleId, function_token);
         RETURN_OK_IF_FAILED(rewriter.Import());
 
+        // find position to start rewriting
         auto pReWriter = &rewriter;
         ILRewriterWrapper reWriterWrapper(pReWriter);
         ILInstr * pFirstOriginalInstr = pReWriter->GetILList()->m_pNext;
         reWriterWrapper.SetILPosition(pFirstOriginalInstr);
+
+        // load the functions first parameter on to the stack (zero is this pointer)
         reWriterWrapper.LoadArgument(1);
+
+        // make the call to target middleware setup function / method
         reWriterWrapper.CallMember0(middlewareSetupMemberRef, false);
 
+        // finish rewriting
         hr = rewriter.Export();
         RETURN_OK_IF_FAILED(hr);
 
+        // exit rewrite lock
         {
             std::lock_guard<std::mutex> guard(mapLock);
             iLRewriteMap[function_token] = true;
