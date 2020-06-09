@@ -22,7 +22,6 @@ set(SOURCES
   miniutf.cpp
   string.cpp 
   util.cpp
-  config_loader.cpp
   il_rewriter.cpp
   il_rewriter_wrapper.cpp 
   clr_helpers.cpp

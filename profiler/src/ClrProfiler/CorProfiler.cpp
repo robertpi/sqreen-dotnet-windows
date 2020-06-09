@@ -8,7 +8,6 @@
 #include "corhlpr.h"
 #include "macros.h"
 #include "clr_helpers.h"
-#include "config_loader.h"
 #include "il_rewriter.h"
 #include "il_rewriter_wrapper.h"
 #include <string>
@@ -56,12 +55,6 @@ namespace trace {
             return E_FAIL;
         }
 
-        // this->traceConfig = LoadTraceConfig(this->clrProfilerHomeEnvValue);
-        // if (this->traceConfig.traceAssemblies.empty()) {
-        //     printf("TraceAssemblies Not Found");
-        //     return E_FAIL;
-        // }
-
         printf("CorProfiler Initialize Success\n");
 
         return S_OK;
@@ -69,7 +62,7 @@ namespace trace {
 
     HRESULT STDMETHODCALLTYPE CorProfiler::Shutdown()
     {
-        printf("CorProfiler Shutdown");
+        printf("CorProfiler Shutdown\n");
 
         if (this->corProfilerInfo != nullptr)
         {
@@ -494,9 +487,7 @@ namespace trace {
             return S_OK;
         }
 
-        mdAssemblyRef assemblyRef = GetProfilerAssemblyRef(metadata_interfaces,
-            traceConfig.managedAssembly.assemblyMetaData,
-            traceConfig.managedAssembly.publicKey);
+        mdAssemblyRef assemblyRef = GetProfilerAssemblyRef(metadata_interfaces);
 
         if (assemblyRef == mdAssemblyRefNil) {
             return S_OK;

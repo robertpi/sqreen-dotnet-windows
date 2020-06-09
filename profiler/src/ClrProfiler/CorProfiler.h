@@ -10,7 +10,6 @@
 #include "corprof.h"
 #include "clr_helpers.h"
 #include "il_rewriter.h"
-#include "config_loader.h"
 
 namespace trace {
 
@@ -34,8 +33,6 @@ namespace trace {
         //moduleMetaInfoMap
         std::unordered_map<ModuleID, ModuleMetaInfo*> moduleMetaInfoMap{};
 
-        //TraceConfig
-        TraceConfig traceConfig;
     public:
         CorProfiler();
         virtual ~CorProfiler();

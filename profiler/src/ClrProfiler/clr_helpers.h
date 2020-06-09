@@ -452,9 +452,7 @@ namespace trace {
     FunctionInfo GetFunctionInfo(const CComPtr<IMetaDataImport2>& metadata_import,
         const mdToken& token);
 
-    mdAssemblyRef GetProfilerAssemblyRef(CComPtr<IUnknown>& metadata_interfaces,
-        ASSEMBLYMETADATA assembly_metadata, 
-        std::vector<BYTE> public_key);
+    mdAssemblyRef GetProfilerAssemblyRef(CComPtr<IUnknown>& metadata_interfaces);
 
 }
 

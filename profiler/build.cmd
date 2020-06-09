@@ -3,6 +3,8 @@ setlocal
 
 REM more meaningful name
 SET BatchDir=%~dp0
+REM fix slashes for cmake
+set "BatchDir=%BatchDir:\=/%"
 
 if not defined BuildOS (
     set BuildOS=Windows
