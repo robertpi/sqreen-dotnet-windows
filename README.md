@@ -1,14 +1,14 @@
 
-This the implementation of ["How to add a header without changing the code base" home asignment](exercise_net.md). 
+This the implementation of ["How to add a header without changing the code base" home assignment](exercise_net.md). 
 
-*Warning: this will clone and build the [.NET Runtime](https://github.com/dotnet/runtime/), so requires 10 GB of disk-space once build*
+*Warning: this will clone and build the [.NET Runtime](https://github.com/dotnet/runtime/), so requires 10 GB of disk-space, once built*
 
 Building
 ========
 
 Currently there only build scripts for Windows. The C# parts will already work under Windows, Linux, macOS & FreeBSD, but the profiler will need build scripts for *nix OSs.
 
-First ensure you have all the [dependencies for Windows](https://github.com/dotnet/runtime/blob/master/docs/workflow/requirements/windows-requirements.md). To ensure all the correct packages from Visual Studio are installed make sure you import [runtime/.vsconfig](runtime/.vsconfig) into the visual studio installer, for more details [how to do this](https://docs.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019).
+First ensure you have all the [dependencies for Windows](https://github.com/dotnet/runtime/blob/master/docs/workflow/requirements/windows-requirements.md). To ensure all the correct packages from Visual Studio are installed make sure you import [runtime/.vsconfig](runtime/.vsconfig) into the Visual Studio Installer, more details [how to do this](https://docs.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019).
 
 Once all the dependencies are installed first, from a normal Windows command prompt, execute:
 
@@ -43,13 +43,13 @@ To complete this project there are three steps:
 
 ## Step One
 
-Step one is fairly straight forward but can be time consuming to ensure all dependencies are sent up correctly to complete the build.
+Step one is fairly straight forward but can be time consuming to ensure all dependencies are setup correctly to complete the build.
 
 ## Step Two
 
 Step two is technically challenging, but fortunately there are some existing samples that are similar to what we want to achieve.
 
-The code from this exercise is a modified version of [ClrProfiler.Trace](https://github.com/caozhiyuan/ClrProfiler.Trace). This project demonstrates how to inject C# code into a C# application being profiled, so the injected C# code can be responsible for collecting the trace data.
+The code from this exercise is a modified version of [ClrProfiler.Trace](https://github.com/caozhiyuan/ClrProfiler.Trace). This project demonstrates how to inject C# code into a dotnet core application being profiled, so the injected C# code can be responsible for collecting the profiling data.
 
 This project relies on an outdated way for preforming cross platform complication, so I replaced it with the build system from [doooot stacksampling](https://github.com/ghanysingh/doooot/tree/0b3bde45ecf74fff54b20c8e652cf9f961742de3/core/profiling/stacksampling) which uses cmake like coreclr.
 
@@ -65,11 +65,18 @@ It also serves as the header file for [clr_helpers.cpp](profiler\src\ClrProfiler
 
 This file contains the code that handles the call backs from the CLR. We are only interested in three callbacks:
 
-- ```ModuleLoadFinished``` - used to store more info about the module / assembly being loaded
+- ```ModuleLoadFinished``` - used to store info about the module / assembly being loaded, needed for IL rewriting
 - ```ModuleUnloadFinished``` - remove data about a module that has been unloaded
 - ```JITCompilationStarted``` - This tests if a method should be rewritten / have code injected and preforms the injection
 
 There are two helper methods ```FunctionNeedsMiddlewareInject``` & ```MethodParamsNameIsMatch``` which use a heuristic to know if we should inject our code.
+
+The environment variables need are:
+
+-  `CORECLR_ENABLE_PROFILING=1` - activates the profiler
+-  `CORECLR_PROFILER={88E5B029-D6B4-4709-B445-03E9BDAB2FA2}` - sets COM ClassId of the profiler
+-  `CORECLR_PROFILER_PATH=%BatchDir%\..\..\profiler\bin\Debug\ClrProfiler.dll` - tells the runtime where to load the profiler
+-  `CORECLR_PROFILER_HOME=%BatchDir%\bin\Debug\netcoreapp3.1\` - required by the profiler locate the code to be injected
 
 ## Step Three
 
