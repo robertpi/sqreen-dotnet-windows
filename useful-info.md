@@ -3,6 +3,10 @@ CoreClr
 
 How to build coreclr from source on docker: https://github.com/dotnet/coreclr/blob/v3.1.4/Documentation/building/linux-instructions.md
 
+Bit about logging: https://books.google.fr/books?id=XibbpjWeRlMC&pg=PA41&lpg=PA41&dq=rotor+logging&source=bl&ots=33DH32wCzh&sig=ACfU3U0d4oH3G1eSujuC6mpONOSkNAEV9g&hl=en&sa=X&ved=2ahUKEwjRjK3Yp_HpAhXR8uAKHe1PDm4Q6AEwFXoECA0QAQ#v=onepage&q=rotor%20logging&f=false
+
+Why is building from source useful? Logging: https://mattwarren.org/2018/03/23/Exploring-the-internals-of-the-.NET-Runtime/
+
 Dot Net Part
 ============
 
