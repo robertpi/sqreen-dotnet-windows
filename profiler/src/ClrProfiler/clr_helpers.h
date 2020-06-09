@@ -13,18 +13,41 @@ namespace trace {
     const size_t NameMaxSize = 1024;
     const ULONG EnumeratorMax = 256;
 
+
+    struct Version {
+        unsigned short major = 1;
+        unsigned short minor = 0;
+        unsigned short build = 0;
+        unsigned short revision = 0;
+        Version() {}
+        Version(std::vector<WSTRING> vector)
+        {
+            major = GetIndexNum(vector, 0);
+            minor = GetIndexNum(vector, 1);
+            build = GetIndexNum(vector, 2);
+            revision = GetIndexNum(vector, 3);
+        }
+
+    private:
+        unsigned short GetIndexNum(std::vector<WSTRING> vector, unsigned index) const
+        {
+            const auto size = vector.size();
+            if (size > index)
+                return (unsigned short)strtol(ToString(vector[index]).c_str(), NULL, 10);
+            return 0;
+        }
+    };
+
     const auto ProfilerAssemblyName = "SqreenHeader"_W;
-    const auto TraceAgentTypeName = "SqreenHeader.HeaderMiddleware"_W;
-    const auto GetInstanceMethodName = "SetupHeaderMiddleware"_W;
-    const auto GetInstanceMethodNameParameterTypeName = "Microsoft.AspNetCore.Builder.IApplicationBuilder"_W;
-    const auto GetInstanceMethodNameParameterTypeAssemblyName = "Microsoft.AspNetCore.Http.Abstractions"_W;
+    const auto ProfilerAssemblyNamePublicKey = HexToBytes("");
+    const auto ProfilerAssemblyVersion = Version(Split("1.0.0.0"_W, static_cast<wchar_t>('.')));
+    const auto MiddlewareTypeName = "SqreenHeader.HeaderMiddleware"_W;
+    const auto MiddlewareSetupMethodName = "SetupHeaderMiddleware"_W;
+    const auto MiddlewareSetupMethodNameParameterTypeName = "Microsoft.AspNetCore.Builder.IApplicationBuilder"_W;
+    const auto MiddlewareSetupMethodNameParameterTypeAssemblyName = "Microsoft.AspNetCore.Http.Abstractions"_W;
 
     const auto AssemblyTypeName = "System.Reflection.Assembly"_W;
     const auto AssemblyLoadMethodName = "LoadFrom"_W;
-
-    const auto SystemTypeName = "System.Type"_W;
-    const auto GetTypeFromHandleMethodName = "GetTypeFromHandle"_W;
-    const auto RuntimeTypeHandleTypeName = "System.RuntimeTypeHandle"_W;
 
     const auto SystemBoolean = "System.Boolean"_W;
     const auto SystemChar = "System.Char"_W;

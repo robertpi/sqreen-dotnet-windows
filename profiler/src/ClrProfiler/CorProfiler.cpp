@@ -233,79 +233,6 @@ namespace trace {
         return S_OK;
     }
 
-    // add ret ex methodTrace var to local var
-    HRESULT ModifyLocalSig(CComPtr<IMetaDataImport2>& pImport,
-        CComPtr<IMetaDataEmit2>& pEmit,
-        ILRewriter& reWriter, 
-        mdTypeRef exTypeRef,
-        mdTypeRef methodTraceTypeRef)
-    {
-        HRESULT hr;
-        PCCOR_SIGNATURE rgbOrigSig = NULL;
-        ULONG cbOrigSig = 0;
-        UNALIGNED INT32 temp = 0;
-        if (reWriter.m_tkLocalVarSig != mdTokenNil)
-        {
-            IfFailRet(pImport->GetSigFromToken(reWriter.m_tkLocalVarSig, &rgbOrigSig, &cbOrigSig));
-
-            //Check Is ReWrite or not
-            const auto len = CorSigCompressToken(methodTraceTypeRef, &temp);
-            if(cbOrigSig - len > 0){
-                if(rgbOrigSig[cbOrigSig - len -1]== ELEMENT_TYPE_CLASS){
-                    if (memcmp(&rgbOrigSig[cbOrigSig - len], &temp, len) == 0) {
-                        return E_FAIL;
-                    }
-                }
-            }
-        }
-
-        auto exTypeRefSize = CorSigCompressToken(exTypeRef, &temp);
-        auto methodTraceTypeRefSize = CorSigCompressToken(methodTraceTypeRef, &temp);
-        ULONG cbNewSize = cbOrigSig + 1 + 1 + methodTraceTypeRefSize + 1 + exTypeRefSize;
-        ULONG cOrigLocals;
-        ULONG cNewLocalsLen;
-        ULONG cbOrigLocals = 0;
-
-        if (cbOrigSig == 0) {
-            cbNewSize += 2;
-            reWriter.cNewLocals = 3;
-            cNewLocalsLen = CorSigCompressData(reWriter.cNewLocals, &temp);
-        }
-        else {
-            cbOrigLocals = CorSigUncompressData(rgbOrigSig + 1, &cOrigLocals);
-            reWriter.cNewLocals = cOrigLocals + 3;
-            cNewLocalsLen = CorSigCompressData(reWriter.cNewLocals, &temp);
-            cbNewSize += cNewLocalsLen - cbOrigLocals;
-        }
-
-        const auto rgbNewSig = new COR_SIGNATURE[cbNewSize];
-        *rgbNewSig = IMAGE_CEE_CS_CALLCONV_LOCAL_SIG;
-
-        ULONG rgbNewSigOffset = 1;
-        memcpy(rgbNewSig + rgbNewSigOffset, &temp, cNewLocalsLen);
-        rgbNewSigOffset += cNewLocalsLen;
-
-        if (cbOrigSig > 0) {
-            const auto cbOrigCopyLen = cbOrigSig - 1 - cbOrigLocals;
-            memcpy(rgbNewSig + rgbNewSigOffset, rgbOrigSig + 1 + cbOrigLocals, cbOrigCopyLen);
-            rgbNewSigOffset += cbOrigCopyLen;
-        }
-
-        rgbNewSig[rgbNewSigOffset++] = ELEMENT_TYPE_OBJECT;
-        rgbNewSig[rgbNewSigOffset++] = ELEMENT_TYPE_CLASS;
-        exTypeRefSize = CorSigCompressToken(exTypeRef, &temp);
-        memcpy(rgbNewSig + rgbNewSigOffset, &temp, exTypeRefSize);
-        rgbNewSigOffset += exTypeRefSize;
-        rgbNewSig[rgbNewSigOffset++] = ELEMENT_TYPE_CLASS;
-        methodTraceTypeRefSize = CorSigCompressToken(methodTraceTypeRef, &temp);
-        memcpy(rgbNewSig + rgbNewSigOffset, &temp, methodTraceTypeRefSize);
-        rgbNewSigOffset += methodTraceTypeRefSize;
-
-        IfFailRet(pEmit->GetTokenFromSig(&rgbNewSig[0], cbNewSize, &reWriter.m_tkLocalVarSig));
-
-        return S_OK;
-    }
-
     bool MethodParamsNameIsMatch(FunctionInfo &functionInfo, CComPtr<IMetaDataImport2> & pImport)
     {
         auto paramIsMatch = false;
@@ -496,7 +423,7 @@ namespace trace {
         mdTypeRef traceAgentTypeRef;
         hr = pEmit->DefineTypeRefByName(
             assemblyRef,
-            TraceAgentTypeName.data(),
+            MiddlewareTypeName.data(),
             &traceAgentTypeRef);
         RETURN_OK_IF_FAILED(hr);
 
@@ -506,99 +433,46 @@ namespace trace {
             return S_OK;
         }
         
-        mdAssemblyRef getInstanceMethodNameParameterTypeAssembly 
-            = FindAssemblyRef(importMetaDataAssembly, GetInstanceMethodNameParameterTypeAssemblyName);
-        mdTypeRef getInstanceMethodNameParameterTypeRef;
+        mdAssemblyRef middlewareSetupMethodNameParameterTypeAssembly 
+            = FindAssemblyRef(importMetaDataAssembly, MiddlewareSetupMethodNameParameterTypeAssemblyName);
+        mdTypeRef middlewareSetupMethodNameParameterTypeRef;
         hr = pEmit->DefineTypeRefByName(
-            getInstanceMethodNameParameterTypeAssembly,
-            GetInstanceMethodNameParameterTypeName.data(),
-            &getInstanceMethodNameParameterTypeRef);
+            middlewareSetupMethodNameParameterTypeAssembly,
+            MiddlewareSetupMethodNameParameterTypeName.data(),
+            &middlewareSetupMethodNameParameterTypeRef);
         RETURN_OK_IF_FAILED(hr);
 
-        std::wcout << "getInstanceMethodNameParameterTypeRef: " << getInstanceMethodNameParameterTypeRef << "\n";
-
-        unsigned getInstanceMethodNameParameter_buffer;
-        auto getInstanceMethodNameParameter_size = CorSigCompressToken(getInstanceMethodNameParameterTypeRef, &getInstanceMethodNameParameter_buffer);
-        auto* traceInstanceSig = new COR_SIGNATURE[getInstanceMethodNameParameter_size + 4];
+        unsigned middlewareSetupMethodNameParameter_buffer;
+        auto middlewareSetupMethodNameParameter_size 
+            = CorSigCompressToken(middlewareSetupMethodNameParameterTypeRef, &middlewareSetupMethodNameParameter_buffer);
+        auto* middlewareSetupSig = new COR_SIGNATURE[middlewareSetupMethodNameParameter_size + 4];
         unsigned offset = 0;
-        traceInstanceSig[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
-        traceInstanceSig[offset++] = 0x01;
-        traceInstanceSig[offset++] = ELEMENT_TYPE_VOID;
-        traceInstanceSig[offset++] = ELEMENT_TYPE_CLASS;
-        memcpy(&traceInstanceSig[offset], &getInstanceMethodNameParameter_buffer, getInstanceMethodNameParameter_size);
-        offset += getInstanceMethodNameParameter_size;
+        middlewareSetupSig[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
+        middlewareSetupSig[offset++] = 0x01;
+        middlewareSetupSig[offset++] = ELEMENT_TYPE_VOID;
+        middlewareSetupSig[offset++] = ELEMENT_TYPE_CLASS;
+        memcpy(&middlewareSetupSig[offset], &middlewareSetupMethodNameParameter_buffer, middlewareSetupMethodNameParameter_size);
+        offset += middlewareSetupMethodNameParameter_size;
 
-        mdMemberRef getInstanceMemberRef;
+        mdMemberRef middlewareSetupMemberRef;
         hr = pEmit->DefineMemberRef(
             traceAgentTypeRef,
-            GetInstanceMethodName.data(),
-            traceInstanceSig,
-            sizeof(traceInstanceSig),
-            &getInstanceMemberRef);
+            MiddlewareSetupMethodName.data(),
+            middlewareSetupSig,
+            sizeof(middlewareSetupSig),
+            &middlewareSetupMemberRef);
         RETURN_OK_IF_FAILED(hr);
 
-        mdAssemblyRef corLibAssemblyRef = GetCorLibAssemblyRef(metadata_interfaces, corAssemblyProperty);
-        if (corLibAssemblyRef == mdAssemblyRefNil) {
-            return S_OK;
-        }
-
-        mdTypeRef exTypeRef;
-        hr = pEmit->DefineTypeRefByName(
-            corLibAssemblyRef,
-            SystemException.data(),
-            &exTypeRef);
-        RETURN_OK_IF_FAILED(hr);
-
-        if (moduleMetaInfo->getTypeFromHandleToken == 0)
-        {
-            mdTypeRef typeRef;
-            hr = pEmit->DefineTypeRefByName(
-                corLibAssemblyRef,
-                SystemTypeName.data(),
-                &typeRef);
-            RETURN_OK_IF_FAILED(hr);
-
-            mdTypeRef runtimeTypeHandleRef;
-            hr = pEmit->DefineTypeRefByName(
-                corLibAssemblyRef,
-                RuntimeTypeHandleTypeName.data(),
-                &runtimeTypeHandleRef);
-            RETURN_OK_IF_FAILED(hr);
-
-            unsigned runtimeTypeHandle_buffer;
-            unsigned type_buffer;
-            auto runtimeTypeHandle_size = CorSigCompressToken(runtimeTypeHandleRef, &runtimeTypeHandle_buffer);
-            auto type_size = CorSigCompressToken(typeRef, &type_buffer);
-            auto* getTypeFromHandleSig = new COR_SIGNATURE[runtimeTypeHandle_size + type_size + 4];
-            unsigned offset = 0;
-            getTypeFromHandleSig[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
-            getTypeFromHandleSig[offset++] = 0x01;
-            getTypeFromHandleSig[offset++] = ELEMENT_TYPE_CLASS;
-            memcpy(&getTypeFromHandleSig[offset], &type_buffer, type_size);
-            offset += type_size;
-            getTypeFromHandleSig[offset++] = ELEMENT_TYPE_VALUETYPE;
-            memcpy(&getTypeFromHandleSig[offset], &runtimeTypeHandle_buffer, runtimeTypeHandle_size);
-            offset += runtimeTypeHandle_size;
-
-            hr = pEmit->DefineMemberRef(
-                typeRef,
-                GetTypeFromHandleMethodName.data(),
-                getTypeFromHandleSig,
-                sizeof(getTypeFromHandleSig),
-                &moduleMetaInfo->getTypeFromHandleToken);
-            RETURN_OK_IF_FAILED(hr);
-        }
 
         ILRewriter rewriter(corProfilerInfo, NULL, moduleId, function_token);
         RETURN_OK_IF_FAILED(rewriter.Import());
 
-        //add try catch finally
         auto pReWriter = &rewriter;
         ILRewriterWrapper reWriterWrapper(pReWriter);
         ILInstr * pFirstOriginalInstr = pReWriter->GetILList()->m_pNext;
         reWriterWrapper.SetILPosition(pFirstOriginalInstr);
         reWriterWrapper.LoadArgument(1);
-        reWriterWrapper.CallMember0(getInstanceMemberRef, false);
+        reWriterWrapper.CallMember0(middlewareSetupMemberRef, false);
 
         hr = rewriter.Export();
         RETURN_OK_IF_FAILED(hr);
