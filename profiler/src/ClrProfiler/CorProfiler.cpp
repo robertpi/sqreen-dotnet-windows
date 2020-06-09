@@ -18,7 +18,7 @@ namespace trace {
 
     CorProfiler::CorProfiler() : refCount(0), corProfilerInfo(nullptr)
     {
-        printf("CorProfiler()\n");
+        std::wcout << "CorProfiler()\n";
     }
 
     CorProfiler::~CorProfiler()
@@ -51,18 +51,18 @@ namespace trace {
         this->clrProfilerHomeEnvValue = GetEnvironmentValue(GetClrProfilerHome());
 
         if(this->clrProfilerHomeEnvValue.empty()) {
-            printf("ClrProfilerHome Not Found\n");
+            std::wcout << "ClrProfilerHome Not Found\n";
             return E_FAIL;
         }
 
-        printf("CorProfiler Initialize Success\n");
+        std::wcout << "CorProfiler Initialize Success\n";
 
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE CorProfiler::Shutdown()
     {
-        printf("CorProfiler Shutdown\n");
+        std::wcout << "CorProfiler Shutdown\n";
 
         if (this->corProfilerInfo != nullptr)
         {
@@ -142,7 +142,7 @@ namespace trace {
 
         if (entryPointToken != mdTokenNil)
         {
-            //printf("Assembly:{} EntryPointToken:{}", ToString(module_info.assembly.name), entryPointToken);
+            std::wcout << "Assembly: " << module_info.assembly.name << ", EntryPointToken: " << entryPointToken << "\n";
         }
 
         if (module_info.assembly.name == "mscorlib"_W || module_info.assembly.name == "System.Private.CoreLib"_W) {
@@ -195,7 +195,7 @@ namespace trace {
     {
         // remove info about the module on unload
 
-        //printf("CorProfiler::ModuleUnloadFinished, ModuleID:{} ", moduleId);
+        std::wcout << "CorProfiler::ModuleUnloadFinished, ModuleID: " << moduleId << "\n";
         {
             std::lock_guard<std::mutex> guard(mapLock);
             if (moduleMetaInfoMap.count(moduleId) > 0) {
@@ -508,7 +508,7 @@ namespace trace {
             iLRewriteMap[function_token] = true;
         }
 
-        //printf("TypeName:{} MethodName:{} IL ReWirte ", ToString(functionInfo.type.name), ToString(functionInfo.name));
+        std::wcout << "TypeName: " << functionInfo.type.name << ", MethodName: " << functionInfo.name << "\n";
 
         return  S_OK;
     }
